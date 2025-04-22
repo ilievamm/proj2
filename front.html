@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Token Risk Score</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: #f1f1f1;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background-color: rgba(255, 255, 255, 0.05);
+      padding: 30px 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #00ffe7;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: none;
+      border-radius: 8px;
+      background-color: #ffffff11;
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+    }
+
+    input[type="text"]::placeholder {
+      color: #ccc;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: #00ffe7;
+      color: #000;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0ff;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Проверка риска токена</h1>
+    <input type="text" id="address" placeholder="Введите адрес токена">
+    <button onclick="checkRisk()">Проверить</button>
+    <p id="result"></p>
+  </div>
+
+  <script>
+    async function checkRisk() {
+      const address = document.getElementById("address").value;
+      const result = document.getElementById("result");
+
+      result.innerText = "Загрузка...";
+
+      try {
+        const res = await fetch("http://localhost:5000/risk-score", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address })
+        });
+
+        const data = await res.json();
+
+        result.innerText = data.risk_score !== undefined
+          ? `Риск-балл: ${data.risk_score}`
+          : `Ошибка: ${data.error}`;
+      } catch (error) {
+        result.innerText = "Произошла ошибка при подключении к серверу.";
+      }
+    }
+  </script>
+</body>
+</html>
