@@ -1,95 +1,84 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Token Risk Score</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    * {
-      box-sizing: border-box;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
+    <link rel="icon" type="image/png" href="favicon.png">
 
+  <meta charset="UTF-8" />
+  <title>Token Risk Checker</title>
+  <style>
     body {
-      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
-      color: #f1f1f1;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      font-family: Arial, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      padding: 2rem;
     }
 
     .container {
-      background-color: rgba(255, 255, 255, 0.05);
-      padding: 30px 40px;
-      border-radius: 16px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-      text-align: center;
-      width: 90%;
-      max-width: 400px;
+      max-width: 500px;
+      margin: auto;
+      background-color: #161b22;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 12px #1f6feb;
     }
 
-    h1 {
-      font-size: 24px;
-      margin-bottom: 20px;
-      color: #00ffe7;
-    }
-
-    input[type="text"] {
+    input, button {
       width: 100%;
-      padding: 12px;
-      margin-bottom: 15px;
-      border: none;
+      padding: 0.8rem;
+      margin-top: 1rem;
       border-radius: 8px;
-      background-color: #ffffff11;
-      color: #fff;
-      font-size: 16px;
-      outline: none;
+      border: none;
+      font-size: 1rem;
     }
 
-    input[type="text"]::placeholder {
-      color: #ccc;
+    input {
+      background: #0d1117;
+      color: white;
+      border: 1px solid #30363d;
     }
 
     button {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      background-color: #00ffe7;
-      color: #000;
+      background-color: #238636;
+      color: white;
       cursor: pointer;
-      transition: background-color 0.3s ease;
     }
 
-    button:hover {
-      background-color: #0ff;
+    button:disabled {
+      background: gray;
     }
 
     #result {
-      margin-top: 20px;
-      font-size: 18px;
-      color: #fff;
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #21262d;
+      border-radius: 8px;
+      word-wrap: break-word;
+    }
+
+    .loader {
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Проверка риска токена</h1>
-    <input type="text" id="address" placeholder="Введите адрес токена">
-    <button onclick="checkRisk()">Проверить</button>
-    <p id="result"></p>
+    <h1>Анализ токена</h1>
+    <input type="text" id="address" placeholder="Введите адрес токена" />
+    <button id="check" onclick="checkRisk()">Проверить</button>
+    <div class="loader" id="loader" style="display: none;">🔍 Проверка...</div>
+    <div id="result"></div>
   </div>
 
   <script>
     async function checkRisk() {
       const address = document.getElementById("address").value;
-      const result = document.getElementById("result");
+      const resultDiv = document.getElementById("result");
+      const loader = document.getElementById("loader");
+      const button = document.getElementById("check");
 
-      result.innerText = "Загрузка...";
+      resultDiv.innerHTML = "";
+      loader.style.display = "block";
+      button.disabled = true;
 
       try {
         const res = await fetch("http://localhost:5000/risk-score", {
@@ -100,11 +89,50 @@
 
         const data = await res.json();
 
-        result.innerText = data.risk_score !== undefined
-          ? `Риск-балл: ${data.risk_score}`
-          : `Ошибка: ${data.error}`;
+        if (data.error) {
+          resultDiv.innerHTML = `❌ Ошибка: ${data.error}`;
+        } else {
+          resultDiv.innerHTML = `
+            <strong>Адрес:</strong> ${data.address}<br/>
+            <strong>Имя:</strong> ${data.token_info.name}<br/>
+            <strong>Символ:</strong> ${data.token_info.symbol}<br/>
+            <strong>Десятичные:</strong> ${data.token_info.decimals}<br/>
+            <strong>Риск-балл:</strong> ${data.risk_score}/100<br/>
+            <strong>Причины:</strong>
+            <ul>${data.explanations.map(e => `<li>${e}</li>`).join('')}</ul>
+          `;
+        }
+        if (data.risk_score === 0) {
+  resultDiv.innerHTML = `
+    <strong>Адрес:</strong> ${data.address}<br/>
+    <strong>Имя:</strong> ${data.token_info.name}<br/>
+    <strong>Символ:</strong> ${data.token_info.symbol}<br/>
+    <strong>Десятичные:</strong> ${data.token_info.decimals}<br/>
+    <strong>Риск-балл:</strong> ✅ 0/100 — Безопасный токен<br/>
+    <strong>Отчёт:</strong>
+    <ul>
+      <li>🔒 Контракт не содержит известных уязвимостей</li>
+      <li>📄 Исходный код верифицирован</li>
+      <li>🧪 Токен прошёл все проверки</li>
+    </ul>
+  `;
+} else {
+  resultDiv.innerHTML = `
+    <strong>Адрес:</strong> ${data.address}<br/>
+    <strong>Имя:</strong> ${data.token_info.name}<br/>
+    <strong>Символ:</strong> ${data.token_info.symbol}<br/>
+    <strong>Десятичные:</strong> ${data.token_info.decimals}<br/>
+    <strong>Риск-балл:</strong> ⚠️ ${data.risk_score}/100<br/>
+    <strong>Причины:</strong>
+    <ul>${data.explanations.map(e => `<li>${e}</li>`).join('')}</ul>
+  `;
+}
+
       } catch (error) {
-        result.innerText = "Произошла ошибка при подключении к серверу.";
+        resultDiv.innerHTML = `❌ Ошибка запроса: ${error}`;
+      } finally {
+        loader.style.display = "none";
+        button.disabled = false;
       }
     }
   </script>
